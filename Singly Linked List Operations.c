@@ -12,7 +12,7 @@ struct node {
 /* Global head pointer */
 struct node *head = NULL;
 
-/* Function to add a student at the end (Slide 26 style) */
+/* Function to add a student at the end  */
 void addStudent() {
     struct node *curr, *temp;
 
@@ -41,7 +41,7 @@ void addStudent() {
     printf("Student registered successfully.\n");
 }
 
-/* Function to display the list (Slide 27 style) */
+/* Function to display the list  */
 void display() {
     struct node *curr;
 
@@ -62,7 +62,7 @@ void display() {
     printf("-------------------------------\n");
 }
 
-/* Function to count total registered participants (Slide 27 len algorithm) */
+/* Function to count total registered participants */
 int countParticipants() {
     int count = 0;
     struct node *curr = head;
@@ -74,7 +74,7 @@ int countParticipants() {
     return count;
 }
 
-/* Function to remove a student by RegNo (Slide 31 del algorithm) */
+/* Function to remove a student by RegNo  */
 void removeStudent() {
     int reg;
     struct node *curr, *prev;
@@ -114,7 +114,7 @@ void removeStudent() {
     }
 }
 
-/* Function to reverse the list using 3 pointers (Slide 32 reverse algorithm) */
+/* Function to reverse the list using 3 pointers  */
 void reverseList() {
     struct node *prev = NULL;
     struct node *curr = head;
@@ -135,7 +135,7 @@ void reverseList() {
     printf("Linked list reversed successfully.\n");
 }
 
-/* Function to sort list in ascending order of RegNo (Bubble sort on data) */
+/* Function to sort list in ascending order of RegNo  */
 void sortList() {
     struct node *i, *j;
     int tempReg;
