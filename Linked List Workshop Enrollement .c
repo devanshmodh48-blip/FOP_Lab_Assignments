@@ -1,249 +1,370 @@
+/*
+ * Assignment: Workshop Enrollment Management System (Singly Linked List)
+ *
+ * Complete every function marked TODO. Do NOT change main(), the lines marked
+ * "provided", or the message texts - your program is graded automatically and
+ * its output must match EXACTLY (every message ends with "\n").
+ *
+ * The list uses a DUMMY HEADER NODE created by createHead(). It holds no
+ * student data and always stays at the front:
+ *
+ *     head -> [header] -> [student 1] -> [student 2] -> ... -> NULL
+ *
+ *   - the first student is head->next
+ *   - the list is empty when head->next == NULL
+ *   - head itself never changes, so no function needs to return it
+ *
+ * PROMPT(...) works like printf, but only prints when you compile with
+ *     gcc -DINTERACTIVE sll_workshop.c -o workshop
+ * so you see the menu and prompts while testing. The grader compiles WITHOUT
+ * -DINTERACTIVE, so prompts are hidden there. Never print prompts with printf.
+ */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-/* Node structure for student registration */
-struct node {
+#ifdef INTERACTIVE
+#define PROMPT(...) printf(__VA_ARGS__)
+#else
+#define PROMPT(...)
+#endif
+
+// Node structure for Student Registration
+typedef struct Node {
     int regNo;
     char name[50];
-    struct node *next;
-};
+    struct Node* next;
+} Node;
 
-/* Global head pointer (points to dummy header node) */
-struct node *head = NULL;
+// Function Prototypes
+Node* createHead(void);
+Node* createNode(int regNo, const char* name);
+void addStudent(Node* head);
+void displayList(Node* head);
+void countParticipants(Node* head);
+void sortList(Node* head);
+void reverseList(Node* head);
+void addAtPosition(Node* head);
+void deleteAtPosition(Node* head);
+void freeList(Node* head);
 
-/* Function to create the dummy header node */
-void createHead() {
-    head = (struct node *)malloc(sizeof(struct node));
-    if (head == NULL) {
-        printf("\nMemory allocation failed for header node!\n");
-        exit(1);
+/* ---------------- provided - do not modify ---------------- */
+int main() {
+    Node* head = createHead();
+    int choice, r, c;
+
+    while (1) {
+        PROMPT("\n============================================\n");
+        PROMPT("   WORKSHOP ENROLLMENT MANAGEMENT SYSTEM   \n");
+        PROMPT("============================================\n");
+        PROMPT("1. Add Students\n");
+        PROMPT("2. Display Registered Students\n");
+        PROMPT("3. Count Total Participants\n");
+        PROMPT("4. Sort Student List (By Reg No)\n");
+        PROMPT("5. Reverse Student List\n");
+        PROMPT("6. Add a Student at Position\n");
+        PROMPT("7. Delete a Student at Position\n");
+        PROMPT("8. Delete All Students & Exit\n");
+        PROMPT("--------------------------------------------\n");
+        PROMPT("Enter your choice (1-8): ");
+        r = scanf("%d", &choice);
+        if (r == EOF) {                 // end of input: stop instead of looping forever
+            freeList(head);
+            return 0;
+        }
+        if (r != 1) {
+            printf("Invalid input! Please enter a number.\n");
+            while ((c = getchar()) != '\n' && c != EOF); // Clear buffer
+            continue;
+        }
+
+        switch (choice) {
+            case 1:
+                addStudent(head);
+                break;
+            case 2:
+                displayList(head);
+                break;
+            case 3:
+                countParticipants(head);
+                break;
+            case 4:
+                sortList(head);
+                break;
+            case 5:
+                reverseList(head);
+                break;
+            case 6:
+                addAtPosition(head);
+                break;
+            case 7:
+                deleteAtPosition(head);
+                break;
+            case 8:
+                freeList(head);
+                printf("All student records deleted. Exiting program...\n");
+                exit(0);
+            default:
+                printf("Invalid choice! Please select between 1 and 8.\n");
+        }
     }
-    head->regNo = -1;
-    strcpy(head->name, "HEADER");
+
+    return 0;
+}
+/* ---------------- end of provided code ---------------- */
+
+// Create the dummy header node: no student data, next = NULL. Return it.
+Node* createHead(void) {
+    Node* head = (Node*)malloc(sizeof(Node));
+    if (head == NULL) {
+        return NULL;
+    }
+    head->regNo = 0;
+    head->name[0] = '\0';
     head->next = NULL;
+    return head;
 }
 
-/* Function to count total registered participants */
-int countParticipants() {
+// Function to allocate memory and create a new node
+// (copy at most 49 characters of name; next must be NULL)
+Node* createNode(int regNo, const char* name) {
+    Node* newNode = (Node*)malloc(sizeof(Node));
+    if (newNode == NULL) {
+        return NULL;
+    }
+    newNode->regNo = regNo;
+    strncpy(newNode->name, name, 49);
+    newNode->name[49] = '\0';
+    newNode->next = NULL;
+    return newNode;
+}
+
+// a) Add Students at the END of the list, one after another, while the user
+//    enters 1. Students already in the list must be kept (new ones go after them).
+// Message after adding each student:  "Student added successfully."
+void addStudent(Node* head) {
+    int regNo;
+    char name[50];
+    int ch = 1;
+
+    Node* last = head;
+    while (last->next != NULL) {
+        last = last->next;
+    }
+
+    while (ch == 1) {
+        PROMPT("Enter Registration Number: ");              // provided
+        if (scanf("%d", &regNo) != 1) break;                // provided
+        PROMPT("Enter Student Name: ");                     // provided
+        scanf(" %49[^\n]", name);                           // provided: reads a name with spaces
+
+        Node* newNode = createNode(regNo, name);
+        if (newNode != NULL) {
+            last->next = newNode;
+            last = newNode;
+            printf("Student added successfully.\n");
+        }
+
+        PROMPT("\n Enter 1 if you wish to add new node ");  // provided
+        if (scanf("%d", &ch) != 1) ch = 0;                  // provided
+    }
+}
+
+// b) Display the List (students only, never the header node)
+// Empty list:  "No students registered."
+// Otherwise print these three lines:
+//   printf("\n--- Registered Students ---\n");
+//   printf("%-15s %-30s\n", "Reg No", "Name");
+//   printf("--------------------------------------------\n");
+// then one line per student:
+//   printf("%-15d %-30s\n", regNo, name);
+void displayList(Node* head) {
+    if (head == NULL || head->next == NULL) {
+        printf("No students registered.\n");
+        return;
+    }
+
+    printf("\n--- Registered Students ---\n");
+    printf("%-15s %-30s\n", "Reg No", "Name");
+    printf("--------------------------------------------\n");
+
+    Node* curr = head->next;
+    while (curr != NULL) {
+        printf("%-15d %-30s\n", curr->regNo, curr->name);
+        curr = curr->next;
+    }
+}
+
+// c) Count Total Participants (do not count the header node)
+// Message:  "Total registered students: %d"
+void countParticipants(Node* head) {
     int count = 0;
-    struct node *curr = head->next;
+    Node* curr = (head != NULL) ? head->next : NULL;
 
     while (curr != NULL) {
         count++;
         curr = curr->next;
     }
-    return count;
+
+    printf("Total registered students: %d\n", count);
 }
 
-/* Helper to allocate and populate a new student node */
-struct node *createStudentNode() {
-    struct node *curr = (struct node *)malloc(sizeof(struct node));
-    if (curr == NULL) {
-        printf("\nMemory allocation failed!\n");
-        return NULL;
-    }
-
-    printf("Enter Registration Number: ");
-    scanf("%d", &curr->regNo);
-    printf("Enter Student Name: ");
-    scanf("%s", curr->name);
-    curr->next = NULL;
-
-    return curr;
-}
-
-/* Function 1: Add a student at the end */
-void addStudentEnd() {
-    struct node *curr = createStudentNode();
-    if (curr == NULL) return;
-
-    struct node *temp = head;
-    while (temp->next != NULL) {
-        temp = temp->next;
-    }
-    temp->next = curr;
-
-    printf("Student registered successfully at the end.\n");
-}
-
-/* Function 2: Add a student at a specific position (1-based index) */
-void addStudentAtPosition() {
-    int pos, k;
-    int total = countParticipants();
-
-    printf("Enter position to insert (1 to %d): ", total + 1);
-    scanf("%d", &pos);
-
-    if (pos < 1 || pos > total + 1) {
-        printf("Invalid position! Current total participants: %d\n", total);
+// d) Sort List in Ascending Order by Registration Number
+// (swapping data or relinking nodes are both fine; the header node stays in
+//  front; students with equal Registration Numbers keep their original order)
+// Messages:
+//   0 or 1 student:  "List sorted successfully (or already contains 0 or 1 item)."
+//   after sorting:   "Students are sorted in ascending order of Registration Number."
+void sortList(Node* head) {
+    if (head == NULL || head->next == NULL || head->next->next == NULL) {
+        printf("List sorted successfully (or already contains 0 or 1 item).\n");
         return;
     }
 
-    struct node *curr = createStudentNode();
-    if (curr == NULL) return;
+    // Stable Bubble Sort by swapping data fields (preserves relative order of duplicate keys)
+    int swapped;
+    Node* ptr1;
+    Node* lptr = NULL;
 
-    struct node *temp = head;
-    for (k = 1; k < pos; k++) {
-        temp = temp->next;
-    }
+    do {
+        swapped = 0;
+        ptr1 = head->next;
 
-    curr->next = temp->next;
-    temp->next = curr;
+        while (ptr1->next != lptr) {
+            if (ptr1->regNo > ptr1->next->regNo) {
+                int tempReg = ptr1->regNo;
+                char tempName[50];
+                strcpy(tempName, ptr1->name);
 
-    printf("Student registered successfully at position %d.\n", pos);
+                ptr1->regNo = ptr1->next->regNo;
+                strcpy(ptr1->name, ptr1->next->name);
+
+                ptr1->next->regNo = tempReg;
+                strcpy(ptr1->next->name, tempName);
+
+                swapped = 1;
+            }
+            ptr1 = ptr1->next;
+        }
+        lptr = ptr1;
+    } while (swapped);
+
+    printf("Students are sorted in ascending order of Registration Number.\n");
 }
 
-/* Function 3: Delete a student at a specific position (1-based index) */
-void deleteStudentAtPosition() {
-    int pos, k;
-    int total = countParticipants();
-
-    if (head->next == NULL) {
-        printf("\nNo students registered.\n");
+// e) Reverse the List iteratively (reverse the students; the header node
+//    stays in front and must point to the new first student)
+// Messages:
+//   empty list:        "No students registered to reverse."
+//   after reversing:   "Student records reversed successfully."
+void reverseList(Node* head) {
+    if (head == NULL || head->next == NULL) {
+        printf("No students registered to reverse.\n");
         return;
     }
 
-    printf("Enter position to delete (1 to %d): ", total);
-    scanf("%d", &pos);
+    Node* prev = NULL;
+    Node* curr = head->next;
+    Node* nextNode = NULL;
 
-    if (pos < 1 || pos > total) {
-        printf("Invalid position! Current total participants: %d\n", total);
+    while (curr != NULL) {
+        nextNode = curr->next;
+        curr->next = prev;
+        prev = curr;
+        curr = nextNode;
+    }
+
+    head->next = prev;
+    printf("Student records reversed successfully.\n");
+}
+
+// f) Add a Student at a given Position (1 = first, count+1 = end)
+// Messages:
+//   position not in 1..count+1 (list unchanged):  "Invalid position!"
+//   added:                                        "Student added successfully."
+void addAtPosition(Node* head) {
+    int pos, regNo;
+    char name[50];
+
+    PROMPT("Enter Position: ");                 // provided
+    scanf("%d", &pos);                          // provided
+    PROMPT("Enter Registration Number: ");      // provided
+    scanf("%d", &regNo);                        // provided
+    PROMPT("Enter Student Name: ");             // provided
+    scanf(" %49[^\n]", name);                   // provided: reads a name with spaces
+
+    if (pos < 1) {
+        printf("Invalid position!\n");
         return;
     }
 
-    struct node *prev = head;
-    for (k = 1; k < pos; k++) {
+    // Walk to the node right BEFORE target position (header is position 0)
+    Node* prev = head;
+    for (int i = 1; i < pos; i++) {
+        if (prev->next == NULL) {
+            printf("Invalid position!\n");
+            return;
+        }
         prev = prev->next;
     }
 
-    struct node *curr = prev->next;
-    prev->next = curr->next;
-    free(curr);
+    Node* newNode = createNode(regNo, name);
+    if (newNode == NULL) return;
 
-    printf("Student record at position %d deleted successfully.\n", pos);
+    newNode->next = prev->next;
+    prev->next = newNode;
+
+    printf("Student added successfully.\n");
 }
 
-/* Function 4: Display the list */
-void display() {
-    struct node *curr;
-
-    if (head->next == NULL) {
-        printf("\nNo students registered.\n");
+// g) Delete the Student at a given Position (1 = first)
+// Messages:
+//   list is empty (do NOT read a position):     "List is empty. No students to remove."
+//   position not in 1..count (list unchanged):  "Invalid position!"
+//   deleted:                                    "Student record deleted successfully."
+void deleteAtPosition(Node* head) {
+    if (head == NULL || head->next == NULL) {
+        printf("List is empty. No students to remove.\n");
         return;
     }
 
-    curr = head->next;
-    printf("\n--- Registered Students ---\n");
-    printf("%-15s %-20s\n", "Reg No", "Name");
-    printf("-------------------------------\n");
+    int pos;
+    PROMPT("Enter Position to delete: ");       // provided
+    scanf("%d", &pos);                          // provided
 
-    while (curr != NULL) {
-        printf("%-15d %-20s\n", curr->regNo, curr->name);
-        curr = curr->next;
-    }
-    printf("-------------------------------\n");
-}
-
-/* Function 6: Sort list in ascending order of RegNo */
-void sortList() {
-    struct node *i, *j;
-    int tempReg;
-    char tempName[50];
-
-    if (head->next == NULL || head->next->next == NULL) {
-        printf("\nList has fewer than 2 students; already sorted.\n");
+    if (pos < 1) {
+        printf("Invalid position!\n");
         return;
     }
 
-    for (i = head->next; i->next != NULL; i = i->next) {
-        for (j = i->next; j != NULL; j = j->next) {
-            if (i->regNo > j->regNo) {
-                /* Swap RegNo */
-                tempReg = i->regNo;
-                i->regNo = j->regNo;
-                j->regNo = tempReg;
-
-                /* Swap Name */
-                strcpy(tempName, i->name);
-                strcpy(i->name, j->name);
-                strcpy(j->name, tempName);
-            }
+    // Walk to the node right BEFORE target position
+    Node* prev = head;
+    for (int i = 1; i < pos; i++) {
+        if (prev->next == NULL) {
+            printf("Invalid position!\n");
+            return;
         }
+        prev = prev->next;
     }
-    printf("List sorted by Registration Number successfully.\n");
-}
 
-/* Function 7: Reverse the list using 3 pointers */
-void reverseList() {
-    struct node *prev = NULL;
-    struct node *curr = head->next;
-    struct node *future = NULL;
-
-    if (head->next == NULL || head->next->next == NULL) {
-        printf("\nList has fewer than 2 students; nothing to reverse.\n");
+    if (prev->next == NULL) {
+        printf("Invalid position!\n");
         return;
     }
 
-    while (curr != NULL) {
-        future = curr->next;
-        curr->next = prev;
-        prev = curr;
-        curr = future;
-    }
-    head->next = prev;
-    printf("Linked list reversed successfully.\n");
+    Node* toDelete = prev->next;
+    prev->next = toDelete->next;
+    free(toDelete);
+
+    printf("Student record deleted successfully.\n");
 }
 
-int main() {
-    int choice;
-
-    createHead();
-
-    while (1) {
-        printf("\n=== WORKSHOP ENROLLMENT MANAGEMENT SYSTEM ===");
-        printf("\n1. Add Student at End");
-        printf("\n2. Add Student at Position");
-        printf("\n3. Delete Student at Position");
-        printf("\n4. Display List");
-        printf("\n5. Count Total Participants");
-        printf("\n6. Sort List by RegNo");
-        printf("\n7. Reverse List");
-        printf("\n8. Exit");
-        printf("\nEnter choice (1-8): ");
-        scanf("%d", &choice);
-
-        switch (choice) {
-            case 1:
-                addStudentEnd();
-                break;
-            case 2:
-                addStudentAtPosition();
-                break;
-            case 3:
-                deleteStudentAtPosition();
-                break;
-            case 4:
-                display();
-                break;
-            case 5:
-                printf("\nTotal Participants: %d\n", countParticipants());
-                break;
-            case 6:
-                sortList();
-                display();
-                break;
-            case 7:
-                reverseList();
-                display();
-                break;
-            case 8:
-                printf("\nExiting program...\n");
-                return 0;
-            default:
-                printf("\nInvalid choice! Please choose between 1 and 8.\n");
-        }
+// Free all memory in the list: every student AND the header node
+void freeList(Node* head) {
+    Node* curr = head;
+    while (curr != NULL) {
+        Node* nextNode = curr->next;
+        free(curr);
+        curr = nextNode;
     }
-
-    return 0;
 }
