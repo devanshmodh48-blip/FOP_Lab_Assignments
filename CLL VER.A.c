@@ -1,28 +1,3 @@
-/*
- * Assignment: Polynomial Addition using a Circular Singly Linked List
- *
- * Complete every function marked TODO. Do NOT change main(), print_poly()
- * or the input/output format - your program is graded automatically.
- *
- * INPUT (no prompts are printed):
- *   n1                 number of terms in polynomial 1
- *   coef exp           n1 lines, terms in ANY order, exponents >= 0
- *   n2                 number of terms in polynomial 2
- *   coef exp           n2 lines
- *
- * OUTPUT (exactly three lines):
- *   P1 = <poly>
- *   P2 = <poly>
- *   SUM = <poly>
- *
- * <poly> lists terms in DESCENDING order of exponent as "%+dx^%d" separated
- * by one space, e.g. "+3x^2 -5x^0". A polynomial with no terms prints "0".
- *
- * Rules:
- *   - Terms with the same exponent (even inside one polynomial) are combined.
- *   - Terms whose coefficient becomes 0 must be removed.
- *   - The list is circular with a header node; head->next == head when empty.
- */
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -32,7 +7,6 @@ typedef struct node {
     struct node *next;
 } pnode;
 
-/* Create an empty circular list (header node only) and return the header. */
 pnode *new_poly(void)
 {
     pnode *head = (pnode *)malloc(sizeof(pnode));
@@ -45,9 +19,6 @@ pnode *new_poly(void)
     return head;
 }
 
-/* Insert a term keeping the list in descending exponent order.
- * Combine with an existing term of the same exponent; remove it if the
- * resulting coefficient is 0. Ignore terms whose coefficient is 0. */
 void insert_term(pnode *head, int coef, int exp)
 {
     if (head == NULL || coef == 0) {
@@ -57,14 +28,123 @@ void insert_term(pnode *head, int coef, int exp)
     pnode *prev = head;
     pnode *curr = head->next;
 
-    /* Traverse while current term exponent is greater than the new exponent */
     while (curr != head && curr->exp > exp) {
         prev = curr;
         curr = curr->next;
     }
 
-    /* Combine terms if the exponent already exists */
     if (curr != head && curr->exp == exp) {
         curr->coef += coef;
-        /* Remove node if resulting coefficient drops to 0 */
-        if (curr->coef ==
+        if (curr->coef == 0) {
+            prev->next = curr->next;
+            free(curr);
+        }
+        return;
+    }
+
+    pnode *new_node = (pnode *)malloc(sizeof(pnode));
+    if (new_node == NULL) {
+        return;
+    }
+    new_node->coef = coef;
+    new_node->exp = exp;
+    new_node->next = curr;
+    prev->next = new_node;
+}
+
+pnode *read_poly(void)
+{
+    pnode *head = new_poly();
+    if (head == NULL) {
+        return NULL;
+    }
+
+    int n;
+    if (scanf("%d", &n) != 1) {
+        return head;
+    }
+
+    for (int i = 0; i < n; i++) {
+        int coef, exp;
+        if (scanf("%d %d", &coef, &exp) == 2) {
+            insert_term(head, coef, exp);
+        }
+    }
+
+    return head;
+}
+
+pnode *poly_add(pnode *h1, pnode *h2)
+{
+    pnode *sum = new_poly();
+    if (sum == NULL) {
+        return NULL;
+    }
+
+    if (h1 != NULL) {
+        pnode *p = h1->next;
+        while (p != h1) {
+            insert_term(sum, p->coef, p->exp);
+            p = p->next;
+        }
+    }
+
+    if (h2 != NULL) {
+        pnode *q = h2->next;
+        while (q != h2) {
+            insert_term(sum, q->coef, q->exp);
+            q = q->next;
+        }
+    }
+
+    return sum;
+}
+
+void free_poly(pnode *head)
+{
+    if (head == NULL) {
+        return;
+    }
+
+    pnode *curr = head->next;
+    while (curr != head) {
+        pnode *next_node = curr->next;
+        free(curr);
+        curr = next_node;
+    }
+
+    free(head);
+}
+
+void print_poly(pnode *head)
+{
+    pnode *p = head->next;
+
+    if (p == head) {
+        printf("0\n");
+        return;
+    }
+    while (p != head) {
+        printf("%+dx^%d", p->coef, p->exp);
+        p = p->next;
+        if (p != head)
+            printf(" ");
+    }
+    printf("\n");
+}
+
+int main(void)
+{
+    pnode *p1 = read_poly();
+    pnode *p2 = read_poly();
+    pnode *sum = poly_add(p1, p2);
+
+    printf("P1 = ");  print_poly(p1);
+    printf("P2 = ");  print_poly(p2);
+    printf("SUM = "); print_poly(sum);
+
+    free_poly(p1);
+    free_poly(p2);
+    free_poly(sum);
+    return 0;
+}
